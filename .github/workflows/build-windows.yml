@@ -24,10 +24,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller==6.10.0
-        
-    - name: Check FFmpeg
+
+    - name: Install FFmpeg
       run: |
-        ffmpeg -version
+        choco install ffmpeg -y
+        # 将 FFmpeg 加入 PATH
+        echo "$env:ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
+      # 使用 chocolatey 安装，windows-latest 默认有 choco
+        
+    - name: Verify FFmpeg
+      run: ffmpeg -version
         
     - name: Build executable
       run: |
