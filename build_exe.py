@@ -11,7 +11,7 @@ if sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def generate_version_file():
-    """生成 version.py 包含构建信息"""
+    """生成 version.py 包含构建信息（放在项目根目录）"""
     try:
         commit = subprocess.check_output(["git", "log", "-1", "--format=%H"], text=True).strip()[:8]
     except:
@@ -21,10 +21,7 @@ def generate_version_file():
 BUILD_RUN_NUMBER = "{run_number}"
 BUILD_COMMIT_SHA = "{commit}"
 '''
-    # 确保目录存在
-    version_dir = os.path.join("novelvision")
-    os.makedirs(version_dir, exist_ok=True)
-    version_path = os.path.join(version_dir, "version.py")
+    version_path = "version.py"
     with open(version_path, "w", encoding="utf-8") as f:
         f.write(version_content)
     print(f"[BUILD] Generated version.py: run={run_number}, commit={commit}")

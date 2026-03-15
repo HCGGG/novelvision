@@ -34,7 +34,7 @@ class AboutDialog(QDialog):
         layout.addWidget(version_info)
         
         try:
-            from novelvision import version
+            import version
             version_info.setText(f"版本: 0.1.0 (build: {version.BUILD_RUN_NUMBER}, commit: {version.BUILD_COMMIT_SHA})")
         except:
             pass
@@ -43,7 +43,7 @@ class AboutDialog(QDialog):
         desc.setStyleSheet("font-size: 12px; color: #333; margin-top: 10px;")
         layout.addWidget(desc)
         
-        tech_stack = QLabel("\n技术栈: PyQt5 + 火山引擎 AI + FFmpeg")
+        tech_stack = QLabel("\n技术栈: PyQt5 + 火山引擎 AI + FFmpeg（内置）")
         tech_stack.setStyleSheet("font-size: 11px; color: #666;")
         layout.addWidget(tech_stack)
         
@@ -73,6 +73,7 @@ class NovelVisionGUI(QMainWindow):
         self.connect_signals()
         self.check_dependencies()
         self.update_status_bar()
+        self.update_window_title()
     
     def init_ui(self):
         # 中央部件
@@ -270,6 +271,14 @@ class NovelVisionGUI(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("NovelVision Pro - 小说人物视频生成器")
     
+    def update_window_title(self):
+        try:
+            import version
+            build_info = f"(build: {version.BUILD_RUN_NUMBER}, {version.BUILD_COMMIT_SHA[:7]})"
+            self.setWindowTitle(f"NovelVision Pro {build_info}")
+        except:
+            pass
+
     def connect_signals(self):
         self.workflow.progress_updated.connect(self.update_progress)
         self.workflow.error_occurred.connect(self.show_error)
@@ -451,3 +460,16 @@ class NovelVisionGUI(QMainWindow):
     def open_about(self):
         dlg = AboutDialog(self)
         dlg.exec_()
+
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    app.setStyle('Fusion')
+    
+    # 设置应用字体
+    font = QFont("Microsoft YaHei", 9)
+    app.setFont(font)
+    
+    window = NovelVisionGUI()
+    window.show()
+    sys.exit(app.exec_())
