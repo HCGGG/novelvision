@@ -98,6 +98,7 @@ def build_exe():
             copy_ffmpeg_binaries()
             
             # 列出 dist 目录内容
+            dist_dir = "dist"
             print("\n📦 dist/ 目录内容:")
             for item in os.listdir(dist_dir):
                 print(f"  - {item}")
