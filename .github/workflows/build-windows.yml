@@ -28,10 +28,8 @@ jobs:
     - name: Install FFmpeg
       run: |
         choco install ffmpeg -y
-        # 将 FFmpeg 加入 PATH
         echo "$env:ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
-      # 使用 chocolatey 安装，windows-latest 默认有 choco
-        
+      
     - name: Verify FFmpeg
       run: ffmpeg -version
         
@@ -55,5 +53,6 @@ jobs:
         files: |
           dist/NovelVision-*.zip
           dist/NovelVision.exe
+        tag_name: "v${{ github.run_number }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
