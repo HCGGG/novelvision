@@ -127,7 +127,7 @@ class NovelVisionGUI(QMainWindow):
         self.workflow = WorkflowManager(settings=self.settings)
         
         self.setWindowTitle("NovelVision Pro")
-        self.setMinimumSize(1200, 800)
+        self.setMinimumSize(1400, 900)
         
         self.init_ui()
         self.connect_signals()
@@ -447,9 +447,10 @@ class NovelVisionGUI(QMainWindow):
         
         right_layout.addWidget(status_group)
         
-        # --- 场景/分镜 ---
-        scene_group = QGroupBox("🎭 场景/分镜")
-        scene_group.setStyleSheet("""
+
+        # --- 剧情输入 ---
+        plot_group = QGroupBox("📖 剧情输入")
+        plot_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
                 font-size: 12px;
@@ -465,41 +466,35 @@ class NovelVisionGUI(QMainWindow):
                 padding: 0 5px;
             }
         """)
-        scene_layout = QVBoxLayout(scene_group)
-        scene_layout.setSpacing(8)
-        scene_layout.setContentsMargins(12, 12, 12, 12)
+        plot_layout = QVBoxLayout(plot_group)
+        plot_layout.setSpacing(8)
+        plot_layout.setContentsMargins(12, 12, 12, 12)
         
-        self.scene_list = QListWidget()
-        self.scene_list.setStyleSheet("""
-            QListWidget {
+        # 剧情文本框
+        self.plot_text = QTextEdit()
+        self.plot_text.setPlaceholderText("粘贴或输入小说剧情，系统会自动分割成场景并生成视频...")
+        self.plot_text.setStyleSheet("""
+            QTextEdit {
                 border: 1px solid #ccc;
                 border-radius: 4px;
+                padding: 6px;
                 background-color: white;
                 font-size: 12px;
-                outline: none;
+                min-height: 200px;
             }
-            QListWidget::item {
-                padding: 6px;
-                border-radius: 3px;
-            }
-            QListWidget::item:selected {
-                background-color: #3498db;
-                color: white;
-            }
-            QListWidget::item:hover:!selected {
-                background-color: #ecf0f1;
+            QTextEdit:focus {
+                border: 1px solid #3498db;
             }
         """)
-        scene_layout.addWidget(self.scene_list)
+        plot_layout.addWidget(self.plot_text)
         
-        # 场景按钮
-        scene_btn_layout = QHBoxLayout()
-        scene_btn_layout.setSpacing(6)
+        # 导入按钮
+        import_layout = QHBoxLayout()
         
-        self.btn_add_scene = QPushButton("➕ 添加")
-        self.btn_add_scene.setStyleSheet("""
+        self.btn_import_txt = QPushButton("📂 导入 TXT")
+        self.btn_import_txt.setStyleSheet("""
             QPushButton {
-                background-color: #27ae60;
+                background-color: #95a5a6;
                 color: white;
                 border: none;
                 border-radius: 4px;
@@ -507,17 +502,16 @@ class NovelVisionGUI(QMainWindow):
                 font-size: 12px;
             }
             QPushButton:hover {
-                background-color: #2ecc71;
+                background-color: #7f8c8d;
             }
             QPushButton:pressed {
-                background-color: #1e8449;
+                background-color: #6c7a7b;
             }
         """)
-        self.btn_add_scene.clicked.connect(self.add_scene)
-        scene_btn_layout.addWidget(self.btn_add_scene)
+        import_layout.addWidget(self.btn_import_txt)
         
-        self.btn_del_scene = QPushButton("🗑️ 删除")
-        self.btn_del_scene.setStyleSheet("""
+        self.btn_clear_plot = QPushButton("🗑️ 清空")
+        self.btn_clear_plot.setStyleSheet("""
             QPushButton {
                 background-color: #e74c3c;
                 color: white;
@@ -533,12 +527,12 @@ class NovelVisionGUI(QMainWindow):
                 background-color: #a93226;
             }
         """)
-        self.btn_del_scene.clicked.connect(self.delete_scene)
-        scene_btn_layout.addWidget(self.btn_del_scene)
+        import_layout.addWidget(self.btn_clear_plot)
+        import_layout.addStretch()
+        plot_layout.addLayout(import_layout)
         
-        scene_layout.addLayout(scene_btn_layout)
-        
-        right_layout.addWidget(scene_group)
+        right_layout.addWidget(plot_group)
+
         
         # --- 预览 & 日志 ---
         bottom_splitter = QSplitter(Qt.Vertical)
@@ -632,14 +626,14 @@ class NovelVisionGUI(QMainWindow):
         bottom_splitter.addWidget(log_group)
         
         # 设置分割比例
-        bottom_splitter.setSizes([300, 180])
+        bottom_splitter.setSizes([350, 220])
         
         right_layout.addWidget(bottom_splitter)
         
         splitter.addWidget(right_panel)
         
         # 设置左右面板比例
-        splitter.setSizes([400, 800])
+        splitter.setSizes([350, 1050])
         
         # 状态栏
         self.status_bar = QStatusBar()
@@ -793,8 +787,21 @@ class NovelVisionGUI(QMainWindow):
         self.sync_characters_from_ui()
         self.workflow.project_data["name"] = self.project_name.toPlainText()
         
+        # 从剧情文本生成场景
+        plot = self.plot_text.toPlainText().strip()
+        if not plot:
+            QMessageBox.warning(self, "警告", "请输入剧情内容。")
+            return
+        
+        # 将剧情按段落分割成场景
+        scenes = self.split_plot_into_scenes(plot)
+        self.workflow.project_data["scenes"] = []
+        for i, desc in enumerate(scenes):
+            scene = self.workflow.add_scene(desc)
+            self.workflow.project_data["scenes"].append(scene)
+        
         if not self.workflow.project_data["scenes"]:
-            QMessageBox.warning(self, "警告", "请至少添加一个场景。")
+            QMessageBox.warning(self, "警告", "未能从剧情中分割出场景。")
             return
         
         self.action_start.setEnabled(False)
@@ -806,7 +813,6 @@ class NovelVisionGUI(QMainWindow):
         else:
             self.workflow_status.append("工作流: 启动失败")
             self.action_start.setEnabled(True)
-    
     def stop_workflow(self):
         self.workflow.stop()
         self.action_stop.setEnabled(False)
@@ -841,6 +847,54 @@ class NovelVisionGUI(QMainWindow):
         dlg = AboutDialog(self)
         dlg.exec_()
 
+
+
+    def import_txt(self):
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, "导入 TXT 文件", "", "Text Files (*.txt);;All Files (*)"
+        )
+        if filepath:
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.plot_text.setPlainText(content)
+                self.log_area.append(f"📂 导入文件成功: {filepath}")
+            except Exception as e:
+                QMessageBox.warning(self, "导入失败", f"无法读取文件: {str(e)}")
+    
+    def clear_plot(self):
+        self.plot_text.clear()
+        self.log_area.append("🗑️ 剧情已清空")
+
+    def split_plot_into_scenes(self, plot):
+        """将剧情分割成场景列表"""
+        # 先按空行分割
+        paragraphs = [p.strip() for p in plot.split('\n\n') if p.strip()]
+        
+        # 如果没有空行，按句号/换行分割
+        if len(paragraphs) <= 1:
+            paragraphs = [p.strip() for p in plot.replace('。', '。\n').split('\n') if p.strip()]
+        
+        # 限制每个场景不要太长，超过200字再按逗号/分号切分
+        scenes = []
+        for p in paragraphs:
+            if len(p) <= 300:
+                scenes.append(p)
+            else:
+                import re
+                parts = re.split(r'[，；？！]', p)
+                current = ""
+                for part in parts:
+                    if len(current) + len(part) < 300:
+                        current += part + "，"
+                    else:
+                        if current:
+                            scenes.append(current.rstrip('，；'))
+                        current = part + "，"
+                if current:
+                    scenes.append(current.rstrip('，；'))
+        
+        return scenes if scenes else [plot[:500]]
 
 if __name__ == "__main__":
     import sys
