@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QIcon, QFont, QPalette, QColor
 import os
+import time
 
 from core.workflow import WorkflowManager
 from settings import Settings
@@ -148,6 +149,35 @@ class NovelVisionGUI(QMainWindow):
         toolbar.setMovable(False)
         toolbar.setIconSize(QSize(20, 20))
         self.addToolBar(toolbar)
+        
+        # 项目名称栏
+        title_bar = QWidget()
+        title_layout = QHBoxLayout(title_bar)
+        title_layout.setSpacing(8)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        
+        title_label = QLabel("项目名称:")
+        title_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #2c3e50;")
+        title_layout.addWidget(title_label)
+        
+        self.project_name = QTextEdit()
+        self.project_name.setPlaceholderText("输入项目名称...")
+        self.project_name.setMaximumHeight(32)
+        self.project_name.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 6px;
+                background-color: white;
+                font-size: 13px;
+            }
+            QTextEdit:focus {
+                border: 1px solid #3498db;
+            }
+        """)
+        title_layout.addWidget(self.project_name)
+        
+        main_layout.addWidget(title_bar)
         
         self.action_new = QAction("🗄️ 新建", self)
         self.action_new.setFont(QFont("Microsoft YaHei", 10))
@@ -862,7 +892,88 @@ class NovelVisionGUI(QMainWindow):
         self.action_start.setEnabled(True)
         self.workflow_status.append(f"✅ 工作流完成")
         self.log_area.append(f"✅ 工作流完成: {output_path}")
-        self.preview_label.setText(f"✅ 视频已生成\n{output_path}")
+        
+        # 生成视频缩略图并显示
+        thumbnail_path = self.generate_video_thumbnail(output_path)
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            pixmap = QPixmap(thumbnail_path)
+            scaled = pixmap.scaled(
+                self.preview_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.preview_label.setPixmap(scaled)
+            self.preview_label.setToolTip(f"视频: {output_path}")
+        else:
+            self.preview_label.setText(f"✅ 视频已生成\n{output_path}")
+    
+    def generate_video_thumbnail(self, video_path):
+        """使用 FFmpeg 生成视频第一帧缩略图"""
+        try:
+            import subprocess
+            import os
+            
+            thumbnail_dir = os.path.join(self.settings.get("output_dir", "output"), "thumbnails")
+            os.makedirs(thumbnail_dir, exist_ok=True)
+            
+            thumbnail_path = os.path.join(
+                thumbnail_dir,
+                f"thumb_{int(time.time())}.jpg"
+            )
+            
+            # 使用 FFmpeg 提取第一帧
+            ffmpeg_path = self.find_ffmpeg()
+            if not ffmpeg_path:
+                return None
+                
+            cmd = [
+                ffmpeg_path, "-i", video_path,
+                "-ss", "00:00:00.000",
+                "-vframes", "1",
+                "-q:v", "2",
+                thumbnail_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0 and os.path.exists(thumbnail_path):
+                return thumbnail_path
+            return None
+        except Exception as e:
+            self.log_area.append(f"⚠️ 生成缩略图失败: {str(e)}")
+            return None
+    
+    def find_ffmpeg(self):
+        """查找 FFmpeg 可执行文件"""
+        # 与 workflow.py 中相同逻辑
+        import subprocess
+        vendor_dir = os.path.join(os.path.dirname(__file__), "vendor/ffmpeg")
+        if os.path.exists(vendor_dir):
+            ffmpeg_path = os.path.join(vendor_dir, "ffmpeg.exe")
+            if os.path.exists(ffmpeg_path):
+                return ffmpeg_path
+        
+        try:
+            subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=2)
+            return "ffmpeg"
+        except:
+            pass
+        
+        common_paths = [
+            "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe",
+            "C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe",
+            "C:\\ffmpeg\\bin\\ffmpeg.exe",
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                return path
+        
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+            ffmpeg_path = os.path.join(base_dir, "ffmpeg.exe")
+            if os.path.exists(ffmpeg_path):
+                return ffmpeg_path
+        
+        return None
     
     def open_settings(self):
         dlg = SettingsDialog(self)
@@ -911,7 +1022,9 @@ class NovelVisionGUI(QMainWindow):
     
     def clear_plot(self):
         self.plot_text.clear()
-        self.log_area.append("🗑️ 剧情已清空")
+        self.workflow.project_data["scenes"] = []
+        self.action_start.setEnabled(False)
+        self.log_area.append("🗑️ 剧情已清空，已清除确认的场景")
 
     def split_plot_into_scenes(self, plot):
         """将剧情分割成场景列表"""
