@@ -42,7 +42,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: NovelVision-windows-${{ github.run_number }}-${{ github.sha[:7] }}
+        name: NovelVision-windows-${{ github.run_number }}
         path: |
           dist/NovelVision.exe
           dist/*.zip
