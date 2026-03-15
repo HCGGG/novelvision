@@ -4,6 +4,12 @@ import sys
 import subprocess
 import shutil
 
+# 修复 Windows 控制台中文编码问题
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 def build_exe():
     """使用 PyInstaller 打包 NovelVision"""
     
