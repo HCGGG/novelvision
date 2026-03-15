@@ -42,6 +42,9 @@ temp/
 # 自动生成的文件
 novelvision/version.py
 
+# FFmpeg 便携二进制（用户自行提供）
+vendor/ffmpeg/*.exe
+
 # IDE
 .vscode/
 .idea/

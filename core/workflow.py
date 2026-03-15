@@ -15,8 +15,9 @@ class WorkflowManager(QObject):
     finished = pyqtSignal(str)  # output_path
     error_occurred = pyqtSignal(str)
     
-    def __init__(self):
+    def __init__(self, settings=None):
         super().__init__()
+        self.settings = settings
         self.project_data = {
             "name": "",
             "characters": [],
@@ -34,6 +35,15 @@ class WorkflowManager(QObject):
         os.makedirs(self.output_dir, exist_ok=True)
         self.workers = []
         self.output_path = None
+        
+        # 从 settings 覆盖默认配置
+        if self.settings:
+            self.project_data["config"]["resolution"] = self.settings.get("resolution", "1920x1080")
+            self.project_data["config"]["fps"] = self.settings.get("fps", 30)
+            self.project_data["config"]["voice"] = self.settings.get("voice", "zh-CN-XiaoxiaoNeural")
+            self.project_data["config"]["max_retries"] = self.settings.get("max_retries", 3)
+            self.output_dir = self.settings.get("output_dir", "output")
+            os.makedirs(self.output_dir, exist_ok=True)
         
     def load_project(self, filepath):
         try:
@@ -98,19 +108,15 @@ class WorkflowManager(QObject):
         """分步执行工作流，通过信号回调继续下一步"""
         try:
             if self.current_step == 0:
-                # 步骤1: 生成场景图像
                 self.progress_updated.emit(10, "生成场景图像...")
                 self.generate_scene_images_async()
             elif self.current_step == 1:
-                # 步骤2: 生成语音
                 self.progress_updated.emit(40, "生成语音...")
                 self.generate_audio_async()
             elif self.current_step == 2:
-                # 步骤3: 合成视频
                 self.progress_updated.emit(70, "合成视频...")
                 self.compose_video_async()
             elif self.current_step == 3:
-                # 完成
                 self.progress_updated.emit(100, "完成")
                 output_path = self.save_project()
                 self.finished.emit(output_path)
@@ -135,12 +141,10 @@ class WorkflowManager(QObject):
                 worker.start()
         
         if not self.pending_image_gens:
-            # 全部已有图像
             self.current_step += 1
             QTimer.singleShot(100, self.run_workflow_step)
     
     def on_image_generated(self, image_path):
-        # 找到对应的 scene 并设置 image
         for scene, worker in self.pending_image_gens:
             if worker.sender() == worker:
                 scene["image"] = image_path
@@ -148,7 +152,6 @@ class WorkflowManager(QObject):
                 break
         
         if not self.pending_image_gens:
-            # 所有图像生成完成
             self.current_step += 1
             QTimer.singleShot(100, self.run_workflow_step)
     

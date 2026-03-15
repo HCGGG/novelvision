@@ -26,6 +26,24 @@ BUILD_COMMIT_SHA = "{commit}"
         f.write(version_content)
     print(f"[BUILD] Generated version.py: run={run_number}, commit={commit}")
 
+def copy_ffmpeg_binaries():
+    """复制 FFmpeg 便携二进制文件到 dist 目录"""
+    vendor_dir = os.path.join("vendor", "ffmpeg")
+    dist_dir = "dist"
+    
+    if not os.path.exists(vendor_dir):
+        print(f"[WARN] vendor/ffmpeg/ 目录不存在，跳过复制")
+        return
+    
+    binaries = ["ffmpeg.exe", "ffprobe.exe"]
+    for binary in binaries:
+        src = os.path.join(vendor_dir, binary)
+        if os.path.exists(src):
+            shutil.copy2(src, dist_dir)
+            print(f"[BUILD] 复制 {binary} 到 dist/")
+        else:
+            print(f"[WARN] 未找到 {binary} 在 vendor/ffmpeg/")
+
 def build_exe():
     """使用 PyInstaller 打包 NovelVision"""
     
@@ -51,12 +69,12 @@ def build_exe():
     
     print("正在使用 PyInstaller 打包...")
     try:
-        # 检查 ffmpeg 是否安装
+        # 检查 ffmpeg 是否安装（用于构建时验证）
         try:
             subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
-            print("FFmpeg: ✓ 可用")
+            print("FFmpeg: ✓ 系统可用")
         except (FileNotFoundError, subprocess.TimeoutExpired):
-            print("警告: FFmpeg 未找到。请确保 FFmpeg 已安装并添加到 PATH。")
+            print("警告: 系统未找到 FFmpeg，将使用内置便携版（如果提供）")
         
         # 执行打包，指定输出名称
         subprocess.check_call([
@@ -72,6 +90,14 @@ def build_exe():
             size_mb = os.path.getsize(exe_path) / 1024 / 1024
             print(f"\n✅ 打包成功: {exe_path}")
             print(f"文件大小: {size_mb:.2f} MB")
+            
+            # 复制 FFmpeg 二进制文件
+            copy_ffmpeg_binaries()
+            
+            # 列出 dist 目录内容
+            print("\n📦 dist/ 目录内容:")
+            for item in os.listdir(dist_dir):
+                print(f"  - {item}")
         else:
             print("❌ 打包失败，未找到生成的可执行文件")
             return False
