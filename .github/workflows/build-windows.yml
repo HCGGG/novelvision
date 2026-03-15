@@ -37,22 +37,10 @@ jobs:
       run: |
         python build_exe.py
         
-    - name: Create Release assets
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        cd dist
-        $files = Get-ChildItem -Name "*.exe" -Recurse
-        foreach ($file in $files) {
-            Compress-Archive -Path $file -DestinationPath "NovelVision-$file.zip" -Force
-        }
-        
-    - name: Upload Release assets
-      uses: softprops/action-gh-release@v1
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        files: |
-          dist/NovelVision-*.zip
+        name: NovelVision-windows
+        path: |
           dist/NovelVision.exe
-        tag_name: "v${{ github.run_number }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dist/*.zip
