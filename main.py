@@ -497,8 +497,9 @@ class NovelVisionGUI(QMainWindow):
         """)
         plot_layout.addWidget(self.plot_text)
         
-        # 导入按钮
-        import_layout = QHBoxLayout()
+        # 按钮布局
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
         
         self.btn_import_txt = QPushButton("📂 导入 TXT")
         self.btn_import_txt.setStyleSheet("""
@@ -518,7 +519,7 @@ class NovelVisionGUI(QMainWindow):
                 background-color: #6c7a7b;
             }
         """)
-        import_layout.addWidget(self.btn_import_txt)
+        btn_layout.addWidget(self.btn_import_txt)
         
         self.btn_clear_plot = QPushButton("🗑️ 清空")
         self.btn_clear_plot.setStyleSheet("""
@@ -538,9 +539,32 @@ class NovelVisionGUI(QMainWindow):
                 background-color: #a93226;
             }
         """)
-        import_layout.addWidget(self.btn_clear_plot)
-        import_layout.addStretch()
-        plot_layout.addLayout(import_layout)
+        btn_layout.addWidget(self.btn_clear_plot)
+        
+        btn_layout.addStretch()
+        
+        self.btn_confirm_plot = QPushButton("✅ 确认剧情")
+        self.btn_confirm_plot.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:pressed {
+                background-color: #1e8449;
+            }
+        """)
+        self.btn_confirm_plot.clicked.connect(self.confirm_plot)
+        btn_layout.addWidget(self.btn_confirm_plot)
+        
+        plot_layout.addLayout(btn_layout)
         
         right_layout.addWidget(plot_group)
 
@@ -667,7 +691,6 @@ class NovelVisionGUI(QMainWindow):
             pass
 
     def connect_signals(self):
-        self.plot_text.textChanged.connect(self.check_plot_ready)
         self.workflow.progress_updated.connect(self.update_progress)
         self.workflow.error_occurred.connect(self.show_error)
         self.workflow.finished.connect(self.on_workflow_finished)
@@ -804,21 +827,8 @@ class NovelVisionGUI(QMainWindow):
         self.sync_characters_from_ui()
         self.workflow.project_data["name"] = self.project_name.toPlainText()
         
-        # 从剧情文本生成场景
-        plot = self.plot_text.toPlainText().strip()
-        if not plot:
-            QMessageBox.warning(self, "警告", "请输入剧情内容。")
-            return
-        
-        # 将剧情按段落分割成场景
-        scenes = self.split_plot_into_scenes(plot)
-        self.workflow.project_data["scenes"] = []
-        for i, desc in enumerate(scenes):
-            scene = self.workflow.add_scene(desc)
-            self.workflow.project_data["scenes"].append(scene)
-        
         if not self.workflow.project_data["scenes"]:
-            QMessageBox.warning(self, "警告", "未能从剧情中分割出场景。")
+            QMessageBox.warning(self, "警告", "请先输入剧情并确认生成场景。")
             return
         
         self.action_start.setEnabled(False)
@@ -866,6 +876,26 @@ class NovelVisionGUI(QMainWindow):
 
 
 
+
+    def confirm_plot(self):
+        plot = self.plot_text.toPlainText().strip()
+        if not plot:
+            QMessageBox.warning(self, "警告", "请输入剧情内容。")
+            return
+        
+        scenes = self.split_plot_into_scenes(plot)
+        if not scenes:
+            QMessageBox.warning(self, "警告", "未能从剧情中分割出场景。")
+            return
+        
+        # 设置场景
+        self.workflow.project_data["scenes"] = []
+        for desc in scenes:
+            self.workflow.add_scene(desc)
+        
+        self.log_area.append(f"✅ 已确认剧情，生成 {len(scenes)} 个场景")
+        self.action_start.setEnabled(True)
+    
     def import_txt(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self, "导入 TXT 文件", "", "Text Files (*.txt);;All Files (*)"
