@@ -1,64 +1,124 @@
 #!/usr/bin/env python3
 """
-NovelVision GUI - PyQt5 界面
+NovelVision GUI - PyQt5 界面（优化版）
 """
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QTextEdit,
     QPushButton, QProgressBar, QLabel, QListWidget, QListWidgetItem,
     QFileDialog, QMessageBox, QSplitter, QScrollArea, QStatusBar, QAction,
-    QToolBar, QApplication, QDialog, QFormLayout, QLineEdit, QTextEdit as QTextEditWidget
+    QToolBar, QApplication, QDialog, QFormLayout, QLineEdit, QTextEdit as QTextEditWidget,
+    QGroupBox, QFrame, QSizePolicy
 )
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QIcon, QFont, QPalette, QColor
 import os
 
 from core.workflow import WorkflowManager
 from settings import Settings
 from settings_dialog import SettingsDialog
 
+
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("关于 NovelVision Pro")
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(420)
+        self.setMaximumWidth(420)
         
         layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
         
+        # 标题
         title = QLabel("NovelVision Pro")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setStyleSheet("""
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #2c3e50;
+        """)
+        title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
         
+        # 分隔线
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("background-color: #e0e0e0;")
+        layout.addWidget(line)
+        
+        # 版本信息
         version_info = QLabel("版本: 0.1.0")
-        version_info.setStyleSheet("font-size: 14px; color: #666;")
+        version_info.setStyleSheet("""
+            font-size: 14px; 
+            color: #555;
+        """)
+        version_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_info)
         
         try:
             import version
-            version_info.setText(f"版本: 0.1.0 (build: {version.BUILD_RUN_NUMBER}, commit: {version.BUILD_COMMIT_SHA})")
+            version_info.setText(f"版本: 0.1.0 (build: {version.BUILD_RUN_NUMBER}, commit: {version.BUILD_COMMIT_SHA[:7]})")
         except:
             pass
         
+        # 描述
         desc = QLabel("小说人物视频生成器")
-        desc.setStyleSheet("font-size: 12px; color: #333; margin-top: 10px;")
+        desc.setStyleSheet("""
+            font-size: 13px; 
+            color: #666;
+        """)
+        desc.setAlignment(Qt.AlignCenter)
         layout.addWidget(desc)
         
-        tech_stack = QLabel("\n技术栈: PyQt5 + 火山引擎 AI + FFmpeg（内置）")
-        tech_stack.setStyleSheet("font-size: 11px; color: #666;")
+        # 技术栈
+        tech_stack = QLabel("技术栈: PyQt5 + 火山引擎 AI + FFmpeg（内置）")
+        tech_stack.setStyleSheet("""
+            font-size: 11px; 
+            color: #888;
+        """)
+        tech_stack.setAlignment(Qt.AlignCenter)
         layout.addWidget(tech_stack)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        close_btn = QPushButton("关闭")
-        close_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(close_btn)
-        layout.addLayout(btn_layout)
         
         layout.addStretch()
         
-        license_info = QLabel("\n© 2026 NovelVision Pro")
-        license_info.setStyleSheet("font-size: 10px; color: #999;")
+        # 按钮区域
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        close_btn = QPushButton("关闭")
+        close_btn.setMinimumWidth(100)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #21618c;
+            }
+        """)
+        close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(close_btn)
+        
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+        
+        # 版权信息
+        license_info = QLabel("© 2026 NovelVision Pro")
+        license_info.setStyleSheet("""
+            font-size: 10px; 
+            color: #aaa;
+        """)
+        license_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(license_info)
+
 
 class NovelVisionGUI(QMainWindow):
     def __init__(self):
@@ -67,7 +127,7 @@ class NovelVisionGUI(QMainWindow):
         self.workflow = WorkflowManager(settings=self.settings)
         
         self.setWindowTitle("NovelVision Pro")
-        self.setMinimumSize(1100, 750)
+        self.setMinimumSize(1200, 800)
         
         self.init_ui()
         self.connect_signals()
@@ -80,10 +140,13 @@ class NovelVisionGUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(8, 8, 8, 8)
         
         # 工具栏
         toolbar = QToolBar("主工具栏")
         toolbar.setMovable(False)
+        toolbar.setIconSize(QSize(20, 20))
         self.addToolBar(toolbar)
         
         self.action_new = QAction("🗄️ 新建", self)
@@ -122,152 +185,471 @@ class NovelVisionGUI(QMainWindow):
         
         # 主分割器
         splitter = QSplitter(Qt.Horizontal)
+        splitter.setHandleWidth(8)
+        splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #e0e0e0;
+            }
+            QSplitter::handle:hover {
+                background-color: #bdc3c7;
+            }
+        """)
         main_layout.addWidget(splitter)
         
-        # 左侧面板
+        # ==================== 左侧面板 ====================
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(8, 8, 8, 8)
+        left_layout.setSpacing(12)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         
-        # 项目名称
-        project_group = QWidget()
+        # --- 项目信息 ---
+        project_group = QGroupBox("📄 项目信息")
+        project_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         project_layout = QVBoxLayout(project_group)
-        project_layout.setContentsMargins(0, 0, 0, 0)
-        project_label = QLabel("📄 项目名称:")
-        project_label.setStyleSheet("font-weight: bold;")
+        project_layout.setSpacing(8)
+        project_layout.setContentsMargins(12, 12, 12, 12)
+        
+        project_label = QLabel("项目名称:")
+        project_label.setStyleSheet("color: #555; font-size: 12px;")
         project_layout.addWidget(project_label)
         
         self.project_name = QTextEdit()
-        self.project_name.setMaximumHeight(30)
-        self.project_name.setPlaceholderText("输入项目名称")
+        self.project_name.setMaximumHeight(32)
+        self.project_name.setPlaceholderText("输入项目名称...")
+        self.project_name.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 6px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QTextEdit:focus {
+                border: 1px solid #3498db;
+            }
+        """)
         project_layout.addWidget(self.project_name)
         
         left_layout.addWidget(project_group)
         
-        # 角色列表
-        char_group = QWidget()
+        # --- 角色设定 ---
+        char_group = QGroupBox("👥 角色设定")
+        char_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         char_layout = QVBoxLayout(char_group)
-        char_layout.setContentsMargins(0, 0, 0, 0)
-        char_label = QLabel("👥 角色设定:")
-        char_label.setStyleSheet("font-weight: bold;")
-        char_layout.addWidget(char_label)
+        char_layout.setSpacing(8)
+        char_layout.setContentsMargins(12, 12, 12, 12)
         
         self.char_list = QListWidget()
+        self.char_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 6px;
+                border-radius: 3px;
+            }
+            QListWidget::item:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #ecf0f1;
+            }
+        """)
         self.char_list.itemClicked.connect(self.on_char_selected)
         char_layout.addWidget(self.char_list)
         
-        btn_layout = QHBoxLayout()
-        self.btn_add_char = QPushButton("➕ 添加角色")
+        # 角色按钮
+        char_btn_layout = QHBoxLayout()
+        char_btn_layout.setSpacing(6)
+        
+        self.btn_add_char = QPushButton("➕ 添加")
+        self.btn_add_char.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:pressed {
+                background-color: #1e8449;
+            }
+        """)
         self.btn_add_char.clicked.connect(self.add_character)
-        btn_layout.addWidget(self.btn_add_char)
-        self.btn_del_char = QPushButton("🗑️ 删除角色")
+        char_btn_layout.addWidget(self.btn_add_char)
+        
+        self.btn_del_char = QPushButton("🗑️ 删除")
+        self.btn_del_char.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:pressed {
+                background-color: #a93226;
+            }
+        """)
         self.btn_del_char.clicked.connect(self.delete_character)
-        btn_layout.addWidget(self.btn_del_char)
-        char_layout.addLayout(btn_layout)
+        char_btn_layout.addWidget(self.btn_del_char)
+        
+        char_layout.addLayout(char_btn_layout)
         
         left_layout.addWidget(char_group)
         
-        # 角色描述
-        desc_group = QWidget()
+        # --- 角色描述 ---
+        desc_group = QGroupBox("📝 角色描述")
+        desc_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         desc_layout = QVBoxLayout(desc_group)
-        desc_layout.setContentsMargins(0, 0, 0, 0)
-        desc_label = QLabel("📝 角色描述:")
-        desc_label.setStyleSheet("font-weight: bold;")
-        desc_layout.addWidget(desc_label)
+        desc_layout.setSpacing(8)
+        desc_layout.setContentsMargins(12, 12, 12, 12)
         
         self.char_desc = QTextEdit()
-        self.char_desc.setPlaceholderText("描述角色外貌、服装、性格等细节")
+        self.char_desc.setPlaceholderText("描述角色外貌、服装、性格等细节...")
+        self.char_desc.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 6px;
+                background-color: white;
+                font-size: 12px;
+            }
+            QTextEdit:focus {
+                border: 1px solid #3498db;
+            }
+        """)
         desc_layout.addWidget(self.char_desc)
         
         left_layout.addWidget(desc_group)
         
         splitter.addWidget(left_panel)
         
-        # 右侧面板
+        # ==================== 右侧面板 ====================
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(8, 8, 8, 8)
+        right_layout.setSpacing(12)
+        right_layout.setContentsMargins(0, 0, 0, 0)
         
-        # 工作流状态
-        status_group = QWidget()
+        # --- 工作流状态 ---
+        status_group = QGroupBox("⚙️ 工作流状态")
+        status_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         status_layout = QVBoxLayout(status_group)
-        status_layout.setContentsMargins(0, 0, 0, 0)
-        status_label = QLabel("⚙️ 工作流状态:")
-        status_label.setStyleSheet("font-weight: bold;")
-        status_layout.addWidget(status_label)
+        status_layout.setSpacing(8)
+        status_layout.setContentsMargins(12, 12, 12, 12)
         
         self.workflow_status = QTextEdit()
-        self.workflow_status.setMaximumHeight(100)
+        self.workflow_status.setMaximumHeight(80)
         self.workflow_status.setReadOnly(True)
-        self.workflow_status.setStyleSheet("background-color: #f0f0f0; font-family: monospace;")
+        self.workflow_status.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                font-family: Consolas, Monaco, monospace;
+                font-size: 11px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 6px;
+            }
+        """)
         self.workflow_status.append("就绪")
         status_layout.addWidget(self.workflow_status)
         
         self.progress = QProgressBar()
+        self.progress.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                text-align: center;
+                height: 22px;
+                background-color: #ecf0f1;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 #3498db, stop:1 #2980b9);
+                border-radius: 3px;
+            }
+        """)
         self.progress.setValue(0)
         status_layout.addWidget(self.progress)
         
         right_layout.addWidget(status_group)
         
-        # 场景列表
-        scene_group = QWidget()
+        # --- 场景/分镜 ---
+        scene_group = QGroupBox("🎭 场景/分镜")
+        scene_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         scene_layout = QVBoxLayout(scene_group)
-        scene_layout.setContentsMargins(0, 0, 0, 0)
-        scene_label = QLabel("🎭 场景/分镜:")
-        scene_label.setStyleSheet("font-weight: bold;")
-        scene_layout.addWidget(scene_label)
+        scene_layout.setSpacing(8)
+        scene_layout.setContentsMargins(12, 12, 12, 12)
         
         self.scene_list = QListWidget()
+        self.scene_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 12px;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 6px;
+                border-radius: 3px;
+            }
+            QListWidget::item:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #ecf0f1;
+            }
+        """)
         scene_layout.addWidget(self.scene_list)
         
-        btn_layout2 = QHBoxLayout()
-        self.btn_add_scene = QPushButton("➕ 添加场景")
+        # 场景按钮
+        scene_btn_layout = QHBoxLayout()
+        scene_btn_layout.setSpacing(6)
+        
+        self.btn_add_scene = QPushButton("➕ 添加")
+        self.btn_add_scene.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:pressed {
+                background-color: #1e8449;
+            }
+        """)
         self.btn_add_scene.clicked.connect(self.add_scene)
-        btn_layout2.addWidget(self.btn_add_scene)
-        self.btn_del_scene = QPushButton("🗑️ 删除场景")
+        scene_btn_layout.addWidget(self.btn_add_scene)
+        
+        self.btn_del_scene = QPushButton("🗑️ 删除")
+        self.btn_del_scene.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:pressed {
+                background-color: #a93226;
+            }
+        """)
         self.btn_del_scene.clicked.connect(self.delete_scene)
-        btn_layout2.addWidget(self.btn_del_scene)
-        scene_layout.addLayout(btn_layout2)
+        scene_btn_layout.addWidget(self.btn_del_scene)
+        
+        scene_layout.addLayout(scene_btn_layout)
         
         right_layout.addWidget(scene_group)
         
+        # --- 预览 & 日志 ---
+        bottom_splitter = QSplitter(Qt.Vertical)
+        bottom_splitter.setHandleWidth(6)
+        bottom_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #e0e0e0;
+            }
+            QSplitter::handle:hover {
+                background-color: #bdc3c7;
+            }
+        """)
+        
         # 预览区域
-        preview_group = QWidget()
+        preview_group = QGroupBox("🖼️ 预览")
+        preview_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         preview_layout = QVBoxLayout(preview_group)
-        preview_layout.setContentsMargins(0, 0, 0, 0)
-        preview_label = QLabel("🖼️ 预览:")
-        preview_label.setStyleSheet("font-weight: bold;")
-        preview_layout.addWidget(preview_label)
+        preview_layout.setSpacing(8)
+        preview_layout.setContentsMargins(12, 12, 12, 12)
         
         self.preview_label = QLabel("暂无预览")
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet("border: 1px solid #ccc; background-color: #fafafa; padding: 20px;")
-        self.preview_label.setMinimumSize(320, 180)
+        self.preview_label.setStyleSheet("""
+            QLabel {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: #fafafa;
+                color: #888;
+                font-size: 13px;
+            }
+        """)
+        self.preview_label.setMinimumSize(320, 200)
+        self.preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.preview_label.setScaledContents(True)
         preview_layout.addWidget(self.preview_label)
         
-        right_layout.addWidget(preview_group)
+        bottom_splitter.addWidget(preview_group)
         
         # 日志区域
-        log_group = QWidget()
+        log_group = QGroupBox("📝 日志")
+        log_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 12px;
+                color: #2c3e50;
+                border: 1px solid #d0d0d0;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         log_layout = QVBoxLayout(log_group)
-        log_layout.setContentsMargins(0, 0, 0, 0)
-        log_label = QLabel("📝 日志:")
-        log_label.setStyleSheet("font-weight: bold;")
-        log_layout.addWidget(log_label)
+        log_layout.setSpacing(8)
+        log_layout.setContentsMargins(12, 12, 12, 12)
         
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
-        self.log_area.setMaximumHeight(150)
-        self.log_area.setStyleSheet("background-color: #f8f8f8; font-family: Consolas, monospace;")
+        self.log_area.setMaximumHeight(180)
+        self.log_area.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                font-family: Consolas, Monaco, monospace;
+                font-size: 11px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 6px;
+            }
+        """)
         log_layout.addWidget(self.log_area)
         
-        right_layout.addWidget(log_group)
+        bottom_splitter.addWidget(log_group)
+        
+        # 设置分割比例
+        bottom_splitter.setSizes([300, 180])
+        
+        right_layout.addWidget(bottom_splitter)
         
         splitter.addWidget(right_panel)
         
+        # 设置左右面板比例
+        splitter.setSizes([400, 800])
+        
         # 状态栏
         self.status_bar = QStatusBar()
+        self.status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #f0f0f0;
+                border-top: 1px solid #d0d0d0;
+                font-size: 11px;
+            }
+        """)
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("NovelVision Pro - 小说人物视频生成器")
     
@@ -318,7 +700,6 @@ class NovelVisionGUI(QMainWindow):
         )
         if filepath:
             self.workflow.project_data["name"] = self.project_name.toPlainText()
-            # 同步角色描述
             self.sync_characters_from_ui()
             saved_path = self.workflow.save_project(filepath)
             if saved_path:
@@ -348,7 +729,6 @@ class NovelVisionGUI(QMainWindow):
                 self.log_area.append("❌ 项目加载失败")
     
     def sync_characters_from_ui(self):
-        # 将 UI 中的角色描述同步到 project_data
         chars = []
         for i in range(self.char_list.count()):
             item = self.char_list.item(i)
@@ -461,10 +841,28 @@ class NovelVisionGUI(QMainWindow):
         dlg = AboutDialog(self)
         dlg.exec_()
 
+
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
+    
+    # 设置应用调色板
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor(245, 245, 248))
+    palette.setColor(QPalette.WindowText, QColor(44, 62, 80))
+    palette.setColor(QPalette.Base, QColor(255, 255, 255))
+    palette.setColor(QPalette.AlternateBase, QColor(248, 249, 250))
+    palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 220))
+    palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))
+    palette.setColor(QPalette.Text, QColor(44, 62, 80))
+    palette.setColor(QPalette.Button, QColor(240, 240, 240))
+    palette.setColor(QPalette.ButtonText, QColor(44, 62, 80))
+    palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
+    palette.setColor(QPalette.Link, QColor(42, 130, 218))
+    palette.setColor(QPalette.Highlight, QColor(52, 152, 219))
+    palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+    app.setPalette(palette)
     
     # 设置应用字体
     font = QFont("Microsoft YaHei", 9)
