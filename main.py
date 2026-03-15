@@ -127,7 +127,7 @@ class NovelVisionGUI(QMainWindow):
         self.workflow = WorkflowManager(settings=self.settings)
         
         self.setWindowTitle("NovelVision Pro")
-        self.setMinimumSize(1400, 900)
+        self.setMinimumSize(1600, 1000)
         
         self.init_ui()
         self.connect_signals()
@@ -140,8 +140,8 @@ class NovelVisionGUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(8)
-        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(12, 12, 12, 12)
         
         # 工具栏
         toolbar = QToolBar("主工具栏")
@@ -150,35 +150,42 @@ class NovelVisionGUI(QMainWindow):
         self.addToolBar(toolbar)
         
         self.action_new = QAction("🗄️ 新建", self)
+        self.action_new.setFont(QFont("Microsoft YaHei", 10))
         self.action_new.triggered.connect(self.new_project)
         toolbar.addAction(self.action_new)
         
         self.action_save = QAction("💾 保存", self)
+        self.action_save.setFont(QFont("Microsoft YaHei", 10))
         self.action_save.triggered.connect(self.save_project)
         toolbar.addAction(self.action_save)
         
         self.action_load = QAction("📂 加载", self)
+        self.action_load.setFont(QFont("Microsoft YaHei", 10))
         self.action_load.triggered.connect(self.load_project)
         toolbar.addAction(self.action_load)
         
         toolbar.addSeparator()
         
         self.action_settings = QAction("⚙️ 设置", self)
+        self.action_settings.setFont(QFont("Microsoft YaHei", 10))
         self.action_settings.triggered.connect(self.open_settings)
         toolbar.addAction(self.action_settings)
         
         self.action_about = QAction("ℹ️ 关于", self)
+        self.action_about.setFont(QFont("Microsoft YaHei", 10))
         self.action_about.triggered.connect(self.open_about)
         toolbar.addAction(self.action_about)
         
         toolbar.addSeparator()
         
         self.action_start = QAction("▶️ 开始生成", self)
+        self.action_start.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
         self.action_start.triggered.connect(self.start_workflow)
         self.action_start.setEnabled(False)
         toolbar.addAction(self.action_start)
         
         self.action_stop = QAction("⏹️ 停止", self)
+        self.action_stop.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
         self.action_stop.triggered.connect(self.stop_workflow)
         self.action_stop.setEnabled(False)
         toolbar.addAction(self.action_stop)
@@ -207,7 +214,7 @@ class NovelVisionGUI(QMainWindow):
         project_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -225,7 +232,7 @@ class NovelVisionGUI(QMainWindow):
         project_layout.setContentsMargins(12, 12, 12, 12)
         
         project_label = QLabel("项目名称:")
-        project_label.setStyleSheet("color: #555; font-size: 12px;")
+        project_label.setStyleSheet("color: #555; font-size: 13px;")
         project_layout.addWidget(project_label)
         
         self.project_name = QTextEdit()
@@ -237,7 +244,7 @@ class NovelVisionGUI(QMainWindow):
                 border-radius: 4px;
                 padding: 6px;
                 background-color: white;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTextEdit:focus {
                 border: 1px solid #3498db;
@@ -252,7 +259,7 @@ class NovelVisionGUI(QMainWindow):
         char_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -275,7 +282,7 @@ class NovelVisionGUI(QMainWindow):
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 background-color: white;
-                font-size: 12px;
+                font-size: 13px;
                 outline: none;
             }
             QListWidget::item {
@@ -304,8 +311,9 @@ class NovelVisionGUI(QMainWindow):
                 color: white;
                 border: none;
                 border-radius: 4px;
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #2ecc71;
@@ -324,8 +332,9 @@ class NovelVisionGUI(QMainWindow):
                 color: white;
                 border: none;
                 border-radius: 4px;
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #c0392b;
@@ -346,7 +355,7 @@ class NovelVisionGUI(QMainWindow):
         desc_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -371,7 +380,7 @@ class NovelVisionGUI(QMainWindow):
                 border-radius: 4px;
                 padding: 6px;
                 background-color: white;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTextEdit:focus {
                 border: 1px solid #3498db;
@@ -394,7 +403,7 @@ class NovelVisionGUI(QMainWindow):
         status_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -453,7 +462,7 @@ class NovelVisionGUI(QMainWindow):
         plot_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -479,7 +488,7 @@ class NovelVisionGUI(QMainWindow):
                 border-radius: 4px;
                 padding: 6px;
                 background-color: white;
-                font-size: 12px;
+                font-size: 13px;
                 min-height: 200px;
             }
             QTextEdit:focus {
@@ -498,8 +507,9 @@ class NovelVisionGUI(QMainWindow):
                 color: white;
                 border: none;
                 border-radius: 4px;
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #7f8c8d;
@@ -517,8 +527,9 @@ class NovelVisionGUI(QMainWindow):
                 color: white;
                 border: none;
                 border-radius: 4px;
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #c0392b;
@@ -551,7 +562,7 @@ class NovelVisionGUI(QMainWindow):
         preview_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -579,7 +590,7 @@ class NovelVisionGUI(QMainWindow):
                 font-size: 13px;
             }
         """)
-        self.preview_label.setMinimumSize(320, 200)
+        self.preview_label.setMinimumSize(1000, 560)
         self.preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.preview_label.setScaledContents(True)
         preview_layout.addWidget(self.preview_label)
@@ -591,7 +602,7 @@ class NovelVisionGUI(QMainWindow):
         log_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #2c3e50;
                 border: 1px solid #d0d0d0;
                 border-radius: 6px;
@@ -626,22 +637,22 @@ class NovelVisionGUI(QMainWindow):
         bottom_splitter.addWidget(log_group)
         
         # 设置分割比例
-        bottom_splitter.setSizes([350, 220])
+        bottom_splitter.setSizes([400, 250])
         
         right_layout.addWidget(bottom_splitter)
         
         splitter.addWidget(right_panel)
         
         # 设置左右面板比例
-        splitter.setSizes([350, 1050])
+        splitter.setSizes([450, 1150])
         
         # 状态栏
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet("""
             QStatusBar {
                 background-color: #f0f0f0;
-                border-top: 1px solid #d0d0d0;
-                font-size: 11px;
+                border-top: 1px solid #d0f0f0;
+                font-size: 13px;
             }
         """)
         self.setStatusBar(self.status_bar)
@@ -656,9 +667,15 @@ class NovelVisionGUI(QMainWindow):
             pass
 
     def connect_signals(self):
+        self.plot_text.textChanged.connect(self.check_plot_ready)
         self.workflow.progress_updated.connect(self.update_progress)
         self.workflow.error_occurred.connect(self.show_error)
         self.workflow.finished.connect(self.on_workflow_finished)
+    
+    def check_plot_ready(self):
+        """检查剧情文本是否已输入，启用/禁用开始按钮"""
+        has_plot = bool(self.plot_text.toPlainText().strip())
+        self.action_start.setEnabled(has_plot)
     
     def check_dependencies(self):
         try:
@@ -919,7 +936,7 @@ if __name__ == "__main__":
     app.setPalette(palette)
     
     # 设置应用字体
-    font = QFont("Microsoft YaHei", 9)
+    font = QFont("Microsoft YaHei", 10)
     app.setFont(font)
     
     window = NovelVisionGUI()
