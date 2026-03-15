@@ -21,7 +21,10 @@ def generate_version_file():
 BUILD_RUN_NUMBER = "{run_number}"
 BUILD_COMMIT_SHA = "{commit}"
 '''
-    version_path = os.path.join("novelvision", "version.py")
+    # 确保目录存在
+    version_dir = os.path.join("novelvision")
+    os.makedirs(version_dir, exist_ok=True)
+    version_path = os.path.join(version_dir, "version.py")
     with open(version_path, "w", encoding="utf-8") as f:
         f.write(version_content)
     print(f"[BUILD] Generated version.py: run={run_number}, commit={commit}")
