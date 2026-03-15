@@ -1,174 +1,415 @@
 #!/usr/bin/env python3
+"""
+NovelVision GUI - PyQt5 界面
+"""
+
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QLineEdit, QTextEdit, QListWidget, QSplitter,
-    QFileDialog, QMessageBox, QProgressBar, QStatusBar
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QTextEdit,
+    QPushButton, QProgressBar, QLabel, QListWidget, QListWidgetItem,
+    QFileDialog, QMessageBox, QSplitter, QScrollArea, QStatusBar, QAction,
+    QToolBar, QApplication
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QIcon, QFont
 import os
-from core.image_gen import ImageGenWorker
-from core.tts import TTSWorker
-from core.video_composer import VideoComposerWorker
-from core.workflow import WorkflowManager
 
-class MainWindow(QMainWindow):
+from core.workflow import WorkflowManager
+from settings import Settings
+from settings_dialog import SettingsDialog
+
+class NovelVisionGUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("NovelVision Pro - 小说人物视频生成器")
-        self.resize(1200, 800)
-        self.setup_ui()
-        self.workflow = WorkflowManager()
-        self.workers = []
+        self.settings = Settings()
+        self.workflow = WorkflowManager(settings=self.settings)
         
-    def setup_ui(self):
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
+        self.setWindowTitle("NovelVision Pro")
+        self.setMinimumSize(1100, 750)
         
-        # 顶部：项目管理栏
-        top_bar = QWidget()
-        top_layout = QHBoxLayout(top_bar)
-        top_layout.addWidget(QLabel("项目:"))
-        self.project_name = QLineEdit("新项目")
-        top_layout.addWidget(self.project_name)
-        self.btn_new = QPushButton("新建")
-        self.btn_save = QPushButton("保存")
-        self.btn_load = QPushButton("加载")
-        top_layout.addWidget(self.btn_new)
-        top_layout.addWidget(self.btn_save)
-        top_layout.addWidget(self.btn_load)
-        top_layout.addStretch()
-        layout.addWidget(top_bar)
+        self.init_ui()
+        self.connect_signals()
+        self.check_dependencies()
+        self.update_status_bar()
+    
+    def init_ui(self):
+        # 中央部件
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
         
-        # 中部：分割区域（左侧角色/素材，右侧工作流）
+        # 工具栏
+        toolbar = QToolBar("主工具栏")
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
+        
+        self.action_new = QAction("🗄️ 新建", self)
+        self.action_new.triggered.connect(self.new_project)
+        toolbar.addAction(self.action_new)
+        
+        self.action_save = QAction("💾 保存", self)
+        self.action_save.triggered.connect(self.save_project)
+        toolbar.addAction(self.action_save)
+        
+        self.action_load = QAction("📂 加载", self)
+        self.action_load.triggered.connect(self.load_project)
+        toolbar.addAction(self.action_load)
+        
+        toolbar.addSeparator()
+        
+        self.action_settings = QAction("⚙️ 设置", self)
+        self.action_settings.triggered.connect(self.open_settings)
+        toolbar.addAction(self.action_settings)
+        
+        toolbar.addSeparator()
+        
+        self.action_start = QAction("▶️ 开始生成", self)
+        self.action_start.triggered.connect(self.start_workflow)
+        self.action_start.setEnabled(False)
+        toolbar.addAction(self.action_start)
+        
+        self.action_stop = QAction("⏹️ 停止", self)
+        self.action_stop.triggered.connect(self.stop_workflow)
+        self.action_stop.setEnabled(False)
+        toolbar.addAction(self.action_stop)
+        
+        # 主分割器
         splitter = QSplitter(Qt.Horizontal)
+        main_layout.addWidget(splitter)
         
-        # 左侧面板：角色与描述
+        # 左侧面板
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
-        left_layout.addWidget(QLabel("角色设定"))
+        left_layout.setContentsMargins(8, 8, 8, 8)
+        
+        # 项目名称
+        project_group = QWidget()
+        project_layout = QVBoxLayout(project_group)
+        project_layout.setContentsMargins(0, 0, 0, 0)
+        project_label = QLabel("📄 项目名称:")
+        project_label.setStyleSheet("font-weight: bold;")
+        project_layout.addWidget(project_label)
+        
+        self.project_name = QTextEdit()
+        self.project_name.setMaximumHeight(30)
+        self.project_name.setPlaceholderText("输入项目名称")
+        project_layout.addWidget(self.project_name)
+        
+        left_layout.addWidget(project_group)
+        
+        # 角色列表
+        char_group = QWidget()
+        char_layout = QVBoxLayout(char_group)
+        char_layout.setContentsMargins(0, 0, 0, 0)
+        char_label = QLabel("👥 角色设定:")
+        char_label.setStyleSheet("font-weight: bold;")
+        char_layout.addWidget(char_label)
+        
         self.char_list = QListWidget()
-        left_layout.addWidget(self.char_list)
+        self.char_list.itemClicked.connect(self.on_char_selected)
+        char_layout.addWidget(self.char_list)
+        
+        btn_layout = QHBoxLayout()
+        self.btn_add_char = QPushButton("➕ 添加角色")
+        self.btn_add_char.clicked.connect(self.add_character)
+        btn_layout.addWidget(self.btn_add_char)
+        self.btn_del_char = QPushButton("🗑️ 删除角色")
+        self.btn_del_char.clicked.connect(self.delete_character)
+        btn_layout.addWidget(self.btn_del_char)
+        char_layout.addLayout(btn_layout)
+        
+        left_layout.addWidget(char_group)
+        
+        # 角色描述
+        desc_group = QWidget()
+        desc_layout = QVBoxLayout(desc_group)
+        desc_layout.setContentsMargins(0, 0, 0, 0)
+        desc_label = QLabel("📝 角色描述:")
+        desc_label.setStyleSheet("font-weight: bold;")
+        desc_layout.addWidget(desc_label)
+        
         self.char_desc = QTextEdit()
-        self.char_desc.setPlaceholderText("输入人物描述，例如:\n- 姓名、年龄、外貌\n- 性格特点\n- 服装风格")
-        left_layout.addWidget(QLabel("描述"))
-        left_layout.addWidget(self.char_desc)
-        self.btn_add_char = QPushButton("添加角色")
-        self.btn_gen_image = QPushButton("生成图像")
-        left_layout.addWidget(self.btn_add_char)
-        left_layout.addWidget(self.btn_gen_image)
+        self.char_desc.setPlaceholderText("描述角色外貌、服装、性格等细节")
+        desc_layout.addWidget(self.char_desc)
+        
+        left_layout.addWidget(desc_group)
+        
         splitter.addWidget(left_panel)
         
-        # 中间面板：工作流控制
-        mid_panel = QWidget()
-        mid_layout = QVBoxLayout(mid_panel)
-        mid_layout.addWidget(QLabel("工作流"))
-        self.workflow_status = QListWidget()
-        mid_layout.addWidget(self.workflow_status)
-        self.btn_start = QPushButton("开始生成")
-        self.btn_stop = QPushButton("停止")
-        mid_layout.addWidget(self.btn_start)
-        mid_layout.addWidget(self.btn_stop)
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 100)
-        mid_layout.addWidget(self.progress)
-        splitter.addWidget(mid_panel)
-        
-        # 右侧面板：输出预览
+        # 右侧面板
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
-        right_layout.addWidget(QLabel("输出预览"))
-        self.preview_label = QLabel("预览区域")
+        right_layout.setContentsMargins(8, 8, 8, 8)
+        
+        # 工作流状态
+        status_group = QWidget()
+        status_layout = QVBoxLayout(status_group)
+        status_layout.setContentsMargins(0, 0, 0, 0)
+        status_label = QLabel("⚙️ 工作流状态:")
+        status_label.setStyleSheet("font-weight: bold;")
+        status_layout.addWidget(status_label)
+        
+        self.workflow_status = QTextEdit()
+        self.workflow_status.setMaximumHeight(100)
+        self.workflow_status.setReadOnly(True)
+        self.workflow_status.setStyleSheet("background-color: #f0f0f0; font-family: monospace;")
+        self.workflow_status.append("就绪")
+        status_layout.addWidget(self.workflow_status)
+        
+        self.progress = QProgressBar()
+        self.progress.setValue(0)
+        status_layout.addWidget(self.progress)
+        
+        right_layout.addWidget(status_group)
+        
+        # 场景列表
+        scene_group = QWidget()
+        scene_layout = QVBoxLayout(scene_group)
+        scene_layout.setContentsMargins(0, 0, 0, 0)
+        scene_label = QLabel("🎭 场景/分镜:")
+        scene_label.setStyleSheet("font-weight: bold;")
+        scene_layout.addWidget(scene_label)
+        
+        self.scene_list = QListWidget()
+        scene_layout.addWidget(self.scene_list)
+        
+        btn_layout2 = QHBoxLayout()
+        self.btn_add_scene = QPushButton("➕ 添加场景")
+        self.btn_add_scene.clicked.connect(self.add_scene)
+        btn_layout2.addWidget(self.btn_add_scene)
+        self.btn_del_scene = QPushButton("🗑️ 删除场景")
+        self.btn_del_scene.clicked.connect(self.delete_scene)
+        btn_layout2.addWidget(self.btn_del_scene)
+        scene_layout.addLayout(btn_layout2)
+        
+        right_layout.addWidget(scene_group)
+        
+        # 预览区域
+        preview_group = QWidget()
+        preview_layout = QVBoxLayout(preview_group)
+        preview_layout.setContentsMargins(0, 0, 0, 0)
+        preview_label = QLabel("🖼️ 预览:")
+        preview_label.setStyleSheet("font-weight: bold;")
+        preview_layout.addWidget(preview_label)
+        
+        self.preview_label = QLabel("暂无预览")
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;")
-        right_layout.addWidget(self.preview_label)
-        right_layout.addWidget(QLabel("日志"))
+        self.preview_label.setStyleSheet("border: 1px solid #ccc; background-color: #fafafa;")
+        self.preview_label.setMinimumSize(320, 180)
+        self.preview_label.setScaledContents(True)
+        preview_layout.addWidget(self.preview_label)
+        
+        right_layout.addWidget(preview_group)
+        
+        # 日志区域
+        log_group = QWidget()
+        log_layout = QVBoxLayout(log_group)
+        log_layout.setContentsMargins(0, 0, 0, 0)
+        log_label = QLabel("📝 日志:")
+        log_label.setStyleSheet("font-weight: bold;")
+        log_layout.addWidget(log_label)
+        
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
-        right_layout.addWidget(self.log_area)
-        splitter.addWidget(right_panel)
+        self.log_area.setMaximumHeight(150)
+        self.log_area.setStyleSheet("background-color: #f8f8f8; font-family: Consolas, monospace;")
+        log_layout.addWidget(self.log_area)
         
-        splitter.setSizes([300, 300, 600])
-        layout.addWidget(splitter)
+        right_layout.addWidget(log_group)
+        
+        splitter.addWidget(right_panel)
         
         # 状态栏
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪")
-        
-        # 信号连接
-        self.btn_new.clicked.connect(self.new_project)
-        self.btn_save.clicked.connect(self.save_project)
-        self.btn_load.clicked.connect(self.load_project)
-        self.btn_add_char.clicked.connect(self.add_character)
-        self.btn_gen_image.clicked.connect(self.generate_character_image)
-        self.btn_start.clicked.connect(self.start_workflow)
-        self.btn_stop.clicked.connect(self.stop_workflow)
-        
+        self.status_bar.showMessage("NovelVision Pro - 小说人物视频生成器")
+    
+    def connect_signals(self):
+        self.workflow.progress_updated.connect(self.update_progress)
+        self.workflow.error_occurred.connect(self.show_error)
+        self.workflow.finished.connect(self.on_workflow_finished)
+    
+    def check_dependencies(self):
+        try:
+            import ffmpeg
+            self.status_bar.showMessage("FFmpeg: ✓ 可用", 3000)
+        except ImportError:
+            self.status_bar.showMessage("警告: FFmpeg 未安装，视频合成将失败", 5000)
+    
+    def update_status_bar(self):
+        config = self.workflow.project_data["config"]
+        text = f"分辨率: {config['resolution']} | FPS: {config['fps']} | 语音: {config['voice']}"
+        self.status_bar.addPermanentWidget(QLabel(text))
+    
     def new_project(self):
-        self.project_name.setText("新项目")
+        self.project_name.clear()
         self.char_list.clear()
         self.char_desc.clear()
-        self.log("已创建新项目")
-        
+        self.scene_list.clear()
+        self.preview_label.setText("暂无预览")
+        self.workflow.project_data = {
+            "name": "",
+            "characters": [],
+            "scenes": [],
+            "config": self.workflow.project_data["config"].copy()
+        }
+        self.action_start.setEnabled(True)
+        self.log_area.append("📄 新建项目")
+    
     def save_project(self):
-        # TODO: 实现项目保存
-        self.log("项目保存功能开发中...")
-        
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, "保存项目", self.settings.get("output_dir", "output"),
+            "NovelVision 项目 (*.nvproj)"
+        )
+        if filepath:
+            self.workflow.project_data["name"] = self.project_name.toPlainText()
+            # 同步角色描述
+            self.sync_characters_from_ui()
+            saved_path = self.workflow.save_project(filepath)
+            if saved_path:
+                self.log_area.append(f"💾 项目保存成功: {saved_path}")
+            else:
+                self.log_area.append("❌ 项目保存失败")
+    
     def load_project(self):
-        # TODO: 实现项目加载
-        self.log("项目加载功能开发中...")
-        
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, "加载项目", self.settings.get("output_dir", "output"),
+            "NovelVision 项目 (*.nvproj)"
+        )
+        if filepath:
+            if self.workflow.load_project(filepath):
+                self.project_name.setPlainText(self.workflow.project_data.get("name", ""))
+                self.char_list.clear()
+                for char in self.workflow.project_data.get("characters", []):
+                    item = QListWidgetItem(f"👤 {char['name']}")
+                    self.char_list.addItem(item)
+                self.scene_list.clear()
+                for scene in self.workflow.project_data.get("scenes", []):
+                    item = QListWidgetItem(f"🎬 {scene['description']}")
+                    self.scene_list.addItem(item)
+                self.log_area.append(f"📂 项目加载成功: {filepath}")
+                self.action_start.setEnabled(True)
+            else:
+                self.log_area.append("❌ 项目加载失败")
+    
+    def sync_characters_from_ui(self):
+        # 将 UI 中的角色描述同步到 project_data
+        chars = []
+        for i in range(self.char_list.count()):
+            item = self.char_list.item(i)
+            name = item.text().replace("👤 ", "")
+            desc = self.char_desc.toPlainText() if i == self.char_list.currentRow() else ""
+            char = {
+                "id": i + 1,
+                "name": name,
+                "description": desc,
+                "image": None,
+                "voice": self.workflow.project_data["config"]["voice"]
+            }
+            chars.append(char)
+        self.workflow.project_data["characters"] = chars
+    
     def add_character(self):
-        desc = self.char_desc.toPlainText().strip()
-        if not desc:
-            QMessageBox.warning(self, "提示", "请输入角色描述")
-            return
-        self.char_list.addItem(desc[:50] + ("..." if len(desc) > 50 else ""))
-        self.char_desc.clear()
-        self.log(f"添加角色: {desc[:30]}...")
+        char_name = f"角色{len(self.workflow.project_data['characters']) + 1}"
+        char_desc = ""
+        char = self.workflow.add_character(char_name, char_desc)
         
-    def generate_character_image(self):
-        from core.image_gen import ImageGenWorker
-        worker = ImageGenWorker(self.char_desc.toPlainText())
-        worker.signals.finished.connect(self.on_image_generated)
-        worker.signals.error.connect(self.on_worker_error)
-        self.workers.append(worker)
-        worker.start()
-        self.log("正在生成角色图像...")
+        item = QListWidgetItem(f"👤 {char_name}")
+        self.char_list.addItem(item)
+        self.char_list.setCurrentItem(item)
+        self.char_desc.setPlainText(char_desc)
         
-    def on_image_generated(self, image_path):
-        self.log(f"图像生成完成: {image_path}")
-        QMessageBox.information(self, "完成", f"图像已保存到: {image_path}")
+        self.log_area.append(f"➕ 添加角色: {char_name}")
+    
+    def delete_character(self):
+        row = self.char_list.currentRow()
+        if row >= 0:
+            name = self.char_list.item(row).text().replace("👤 ", "")
+            self.char_list.takeItem(row)
+            self.char_desc.clear()
+            self.workflow.project_data["characters"].pop(row)
+            self.log_area.append(f"🗑️ 删除角色: {name}")
+    
+    def on_char_selected(self, item):
+        char_id = self.char_list.row(item)
+        if char_id < len(self.workflow.project_data['characters']):
+            char = self.workflow.project_data['characters'][char_id]
+            self.char_desc.setPlainText(char['description'])
+    
+    def add_scene(self):
+        scene_desc = f"场景{len(self.workflow.project_data['scenes']) + 1}"
+        scene = self.workflow.add_scene(scene_desc)
         
-    def on_worker_error(self, error_msg):
-        self.log(f"错误: {error_msg}")
-        QMessageBox.critical(self, "错误", error_msg)
+        item = QListWidgetItem(f"🎬 {scene_desc}")
+        self.scene_list.addItem(item)
+        self.scene_list.setCurrentItem(item)
         
+        self.log_area.append(f"➕ 添加场景: {scene_desc}")
+    
+    def delete_scene(self):
+        row = self.scene_list.currentRow()
+        if row >= 0:
+            desc = self.scene_list.item(row).text().replace("🎬 ", "")
+            self.scene_list.takeItem(row)
+            self.workflow.project_data["scenes"].pop(row)
+            self.log_area.append(f"🗑️ 删除场景: {desc}")
+    
     def start_workflow(self):
-        self.log("启动工作流...")
-        self.btn_start.setEnabled(False)
-        self.btn_stop.setEnabled(True)
-        # TODO: 调用工作流管理器
-        self.workflow_status.addItem("开始生成流程")
+        self.sync_characters_from_ui()
+        self.workflow.project_data["name"] = self.project_name.toPlainText()
         
+        if not self.workflow.project_data["scenes"]:
+            QMessageBox.warning(self, "警告", "请至少添加一个场景。")
+            return
+        
+        self.action_start.setEnabled(False)
+        self.action_stop.setEnabled(True)
+        self.log_area.append("▶️ 开始工作流...")
+        
+        if self.workflow.start():
+            self.workflow_status.append("工作流: 运行中")
+        else:
+            self.workflow_status.append("工作流: 启动失败")
+            self.action_start.setEnabled(True)
+    
     def stop_workflow(self):
-        self.log("停止工作流")
-        self.btn_start.setEnabled(True)
-        self.btn_stop.setEnabled(False)
         self.workflow.stop()
-        
-    def check_workflow_status(self):
-        # 定期检查工作流状态并更新进度
-        pass
-        
-    def log(self, message):
-        from datetime import datetime
-        time_str = datetime.now().strftime("%H:%M:%S")
-        self.log_area.append(f"[{time_str}] {message}")
-        self.status_bar.showMessage(message)
-        
-    def preview_image(self, image_path):
-        # TODO: 实现图片预览
-        self.preview_label.setText(f"预览: {os.path.basename(image_path)}")
+        self.action_stop.setEnabled(False)
+        self.action_start.setEnabled(True)
+        self.workflow_status.append("工作流: 已停止")
+        self.log_area.append("⏹️ 工作流已停止")
+    
+    def update_progress(self, percentage, message):
+        self.progress.setValue(percentage)
+        self.workflow_status.append(f"⚙️ {message}")
+        self.log_area.append(f"⚙️ {message}")
+    
+    def show_error(self, error_msg):
+        self.workflow_status.append(f"❌ {error_msg}")
+        self.log_area.append(f"❌ {error_msg}")
+        QMessageBox.critical(self, "错误", error_msg)
+    
+    def on_workflow_finished(self, output_path):
+        self.action_stop.setEnabled(False)
+        self.action_start.setEnabled(True)
+        self.workflow_status.append(f"✅ 工作流完成")
+        self.log_area.append(f"✅ 工作流完成: {output_path}")
+        self.preview_label.setText(f"✅ 视频已生成\n{output_path}")
+    
+    def open_settings(self):
+        dlg = SettingsDialog(self)
+        if dlg.exec_() == QDialog.Accepted:
+            self.update_status_bar()
+            self.log_area.append("⚙️ 设置已更新")
+
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    app.setStyle('Fusion')
+    
+    # 设置应用字体
+    font = QFont("Microsoft YaHei", 9)
+    app.setFont(font)
+    
+    window = NovelVisionGUI()
+    window.show()
+    sys.exit(app.exec_())
