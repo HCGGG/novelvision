@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QTextEdit,
     QPushButton, QProgressBar, QLabel, QListWidget, QListWidgetItem,
     QFileDialog, QMessageBox, QSplitter, QScrollArea, QStatusBar, QAction,
-    QToolBar, QApplication
+    QToolBar, QApplication, QDialog, QFormLayout, QLineEdit, QTextEdit as QTextEditWidget
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QFont
@@ -16,6 +16,49 @@ import os
 from core.workflow import WorkflowManager
 from settings import Settings
 from settings_dialog import SettingsDialog
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("关于 NovelVision Pro")
+        self.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(self)
+        
+        title = QLabel("NovelVision Pro")
+        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        layout.addWidget(title)
+        
+        version_info = QLabel("版本: 0.1.0")
+        version_info.setStyleSheet("font-size: 14px; color: #666;")
+        layout.addWidget(version_info)
+        
+        try:
+            from novelvision import version
+            version_info.setText(f"版本: 0.1.0 (build: {version.BUILD_RUN_NUMBER}, commit: {version.BUILD_COMMIT_SHA})")
+        except:
+            pass
+        
+        desc = QLabel("小说人物视频生成器")
+        desc.setStyleSheet("font-size: 12px; color: #333; margin-top: 10px;")
+        layout.addWidget(desc)
+        
+        tech_stack = QLabel("\n技术栈: PyQt5 + 火山引擎 AI + FFmpeg")
+        tech_stack.setStyleSheet("font-size: 11px; color: #666;")
+        layout.addWidget(tech_stack)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        close_btn = QPushButton("关闭")
+        close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+        
+        layout.addStretch()
+        
+        license_info = QLabel("\n© 2026 NovelVision Pro")
+        license_info.setStyleSheet("font-size: 10px; color: #999;")
+        layout.addWidget(license_info)
 
 class NovelVisionGUI(QMainWindow):
     def __init__(self):
@@ -59,6 +102,10 @@ class NovelVisionGUI(QMainWindow):
         self.action_settings = QAction("⚙️ 设置", self)
         self.action_settings.triggered.connect(self.open_settings)
         toolbar.addAction(self.action_settings)
+        
+        self.action_about = QAction("ℹ️ 关于", self)
+        self.action_about.triggered.connect(self.open_about)
+        toolbar.addAction(self.action_about)
         
         toolbar.addSeparator()
         
@@ -193,7 +240,7 @@ class NovelVisionGUI(QMainWindow):
         
         self.preview_label = QLabel("暂无预览")
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet("border: 1px solid #ccc; background-color: #fafafa;")
+        self.preview_label.setStyleSheet("border: 1px solid #ccc; background-color: #fafafa; padding: 20px;")
         self.preview_label.setMinimumSize(320, 180)
         self.preview_label.setScaledContents(True)
         preview_layout.addWidget(self.preview_label)
@@ -400,16 +447,7 @@ class NovelVisionGUI(QMainWindow):
         if dlg.exec_() == QDialog.Accepted:
             self.update_status_bar()
             self.log_area.append("⚙️ 设置已更新")
-
-if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
-    app.setStyle('Fusion')
     
-    # 设置应用字体
-    font = QFont("Microsoft YaHei", 9)
-    app.setFont(font)
-    
-    window = NovelVisionGUI()
-    window.show()
-    sys.exit(app.exec_())
+    def open_about(self):
+        dlg = AboutDialog(self)
+        dlg.exec_()

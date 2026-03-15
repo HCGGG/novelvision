@@ -39,9 +39,8 @@ temp/
 *.jpg
 *.mp3
 
-# 配置文件（敏感）
-config.json
-~/.openclaw/models.json
+# 自动生成的文件
+novelvision/version.py
 
 # IDE
 .vscode/
