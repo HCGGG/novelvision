@@ -378,6 +378,77 @@ class NovelVisionGUI(QMainWindow):
         
         char_layout.addLayout(char_btn_layout)
         
+        # 角色列表区域
+        self.char_list = QListWidget()
+        self.char_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                font-size: 13px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 3px;
+            }
+            QListWidget::item:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #ecf0f1;
+            }
+        """)
+        left_layout.addWidget(self.char_list)
+        
+        # 角色按钮
+        char_btn_layout = QHBoxLayout()
+        char_btn_layout.setSpacing(8)
+        
+        self.btn_add_char = QPushButton("➕ 添加角色")
+        self.btn_add_char.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:pressed {
+                background-color: #1e8449;
+            }
+        """)
+        self.btn_add_char.clicked.connect(self.add_character)
+        char_btn_layout.addWidget(self.btn_add_char)
+        
+        self.btn_del_char = QPushButton("🗑️ 删除角色")
+        self.btn_del_char.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:pressed {
+                background-color: #a93226;
+            }
+        """)
+        self.btn_del_char.clicked.connect(self.delete_character)
+        char_btn_layout.addWidget(self.btn_del_char)
+        
+        left_layout.addLayout(char_btn_layout)
+        
         left_layout.addWidget(char_group)
         
         # --- 角色描述 ---
@@ -880,6 +951,7 @@ class NovelVisionGUI(QMainWindow):
     def update_progress(self, percentage, message):
         self.progress.setValue(percentage)
         self.workflow_status.append(f"⚙️ {message}")
+        self.status_bar.showMessage(f"进度: {percentage}% - {message}")
         self.log_area.append(f"⚙️ {message}")
     
     def show_error(self, error_msg):
@@ -1006,6 +1078,19 @@ class NovelVisionGUI(QMainWindow):
         
         self.log_area.append(f"✅ 已确认剧情，生成 {len(scenes)} 个场景")
         self.action_start.setEnabled(True)
+        
+        # 如果有场景，自动预览第一个
+        if self.workflow.project_data["scenes"]:
+            self.preview_first_scene()
+    
+    def preview_first_scene(self):
+        """预览第一个场景（异步）"""
+        if not self.workflow.project_data["scenes"]:
+            return
+        
+        scene = self.workflow.project_data["scenes"][0]
+        self.log_area.append(f"👁️ 预览场景 1: {scene['description'][:50]}...")
+        # TODO: 异步生成图像并显示
     
     def import_txt(self):
         filepath, _ = QFileDialog.getOpenFileName(
