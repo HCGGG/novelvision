@@ -26,8 +26,10 @@ class ScenePreviewWorker(QThread):
             if not self._is_running:
                 return
             
-            self.error.emit("工作流启动失败")
-            return
+            # 检查工作流是否有效
+            if not self.workflow or not self.workflow.project_data:
+                self.error.emit("工作流无效")
+                return
             
             # 模拟生成过程（实际会调用相应的AI服务）
             self.msleep(2000)  # 模拟生成时间
