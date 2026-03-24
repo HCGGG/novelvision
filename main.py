@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QProgressBar, QLabel, QListWidget, QListWidgetItem,
     QFileDialog, QMessageBox, QSplitter, QScrollArea, QStatusBar, QAction,
     QToolBar, QApplication, QDialog, QFormLayout, QLineEdit, QTextEdit as QTextEditWidget,
-    QGroupBox, QFrame, QSizePolicy
+    QGroupBox, QFrame, QSizePolicy, QSlider, QVBoxLayout as QVBoxLayout2
 )
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QIcon, QFont, QPalette, QColor
